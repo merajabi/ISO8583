@@ -19,12 +19,12 @@ my $date	= shift;
 my $time	= shift;
 my $refId  	= shift;
 my $rrn		= shift;
-my $terminalID="21009517";
+my $terminalID="";
 my $MTI		= "03";
 
-my $tpdu	= "60050A0000";
-my $server	= '172.16.170.203';
-my $port	= '1523'; #1035
+my $tpdu	= "";
+my $server	= '127.0.0.1';
+my $port	= '9999';
 
 my $f = new Filter();  # BINARY BCD ASCII // # FIXED LVAR
 my $p1 = new Packet;

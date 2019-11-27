@@ -11,20 +11,6 @@ use Digest::CMAC;
 my $crypto = "Crypt::DES"; # "Crypt::DES" Crypt::Blowfish
 my $blocksize = 8;
 
-# 21009517 # MAC Key: EA97CD3BEAD53780 # PIN Key: D38FADAD31EA54C7 
-# 10014794 # MAC_KEY: AC422D5AE27EDA22 # PIN_KEY: 8CEE3C8B012D8B39 # MASTER_KEY: EA1465867534FA1C
-
-#32414635343141363530323144454545
-#32394643433446313933463544344634
-#39353143333244334433433430463943
-#45314535333936304444364531314242
-#37303745423232324430304645313230
-#43413136343839323736433244454439
-
-Encrypt($crypto,"EA1465867534FA1C","8cc70f063f70cd22");
-Decrypt($crypto,"EA1465867534FA1C","5cc1889f6a516ace");
-exit;
-
 my $method =  shift;
 my $keyStr = shift;
 
@@ -39,22 +25,6 @@ if ($method eq "MAC"){
 	my $pinBlock = PINBlock($crypto, $keyStr, $pin, $pan );
 	print $pinBlock,"\n";
 }
-
-
-
-=pod
-my $mac = emac($key, $cipher, $text);
-my $digest = hexdigest($mac), "\n";
-#print base64digest($mac), "\n";
-=cut
-
-=pod
-my $omac1 = Digest::CMAC->new($key, $cipher);
-$omac1->add($text);
-my $mac = $omac1->digest;
-my $digest = $omac1->hexdigest;
-=cut
-
 
 sub CBCENCMAC {
 	my ($crypto,$blocksize,$key,$text) = @_;
