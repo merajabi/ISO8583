@@ -1,16 +1,15 @@
-package ISO8583;
+package DataFormat::ISO8583;
 
 use strict;
 use warnings;
+
+use parent qw(DataFormat);
+
 use Tools;
 
 sub new {
 	my ($class, $args) = @_;
-	my $self = {};
-    bless $self, $class;
-
-	$self->{'format'} = {};
-	$self->{'fields'} = {};
+	my $self = $class->SUPER::new;
 	$self->InitFormats();
 	$self->InitFields();
     return $self;
@@ -128,7 +127,7 @@ Copyright 2009-2017 by Mehdi(Raha) Rajabi C<raha.emailbox@gmail.com>
 
 =head1 LICENSE
 
-This module is released under the same terms as Perl itself.
+This module is released under the terms of GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007
 
 =cut
 

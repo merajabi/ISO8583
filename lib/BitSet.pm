@@ -74,7 +74,7 @@ Copyright 2009-2017 by Mehdi(Raha) Rajabi C<raha.emailbox@gmail.com>
 
 =head1 LICENSE
 
-This module is released under the same terms as Perl itself.
+This module is released under the terms of GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007
 
 =cut
 
