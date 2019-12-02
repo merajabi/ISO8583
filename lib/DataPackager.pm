@@ -3,6 +3,7 @@
 	use constant {
 		BIN	=> 'BIN',
 		BCD	=> 'BCD',
+		XBCD=> 'XBCD',
 		ASC	=> 'ASC',
 	};
 }

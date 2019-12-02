@@ -11,13 +11,19 @@ use Tools;
 sub new {
 	my ($class, $args) = @_;
 	my $self = $class->SUPER::new;
-	$self->Set($$args{'format'} || DataPackager::DataFormat->BIN, $$args{'type'}   || DataPackager::PackagingType->FIX, $$args{'length'} || 1 );
+	$self->Set($$args{'lenFormat'} || DataPackager::DataFormat->BCD, $$args{'format'} || DataPackager::DataFormat->BCD, $$args{'type'}   || DataPackager::PackagingType->FIX, $$args{'length'} || 1 );
     return $self;
 };
 
 sub Set {
-	my ($self,$format,$type,$length)=@_;
-	if($format eq DataPackager::DataFormat->BIN || $format eq DataPackager::DataFormat->BCD || $format eq DataPackager::DataFormat->ASC ){
+	my ($self,$lenFormat,$format,$type,$length)=@_;
+	if($lenFormat eq DataPackager::DataFormat->BIN || $lenFormat eq DataPackager::DataFormat->BCD || $lenFormat eq DataPackager::DataFormat->ASC ){
+		$self->{'lenFormat'} = $lenFormat;
+	}else{
+		die "DataPackager::LV::Set, Input format: ".$lenFormat." not recognized, valid values are (BINARY,BCD,ASCII)";
+	}
+
+	if($format eq DataPackager::DataFormat->BIN || $format eq DataPackager::DataFormat->BCD || $format eq DataPackager::DataFormat->XBCD || $format eq DataPackager::DataFormat->ASC ){
 		$self->{'format'} = $format;
 	}else{
 		die "DataPackager::LV::Set, Input format: ".$format." not recognized, valid values are (BINARY,BCD,ASCII)";
@@ -49,10 +55,14 @@ sub Pack {
 
 	if($self->{'type'} eq DataPackager::PackagingType->FIX){
 		if($self->{'format'} eq DataPackager::DataFormat->BIN){
-			if(length($in)==$self->{'length'}*2){ # && in.size()%2==0
+			if(length($in)%2 != 0){
+				die "DataPackager::LV::Pack, LVAR sized BINARY input len must be even";
+			}
+
+			if(4*length($in)==$self->{'length'}){ # length($in)/2==$self->{'length'}/8
 				$out = $in;
 			}else{
-				die "DataPackager::LV::Pack, FIXED sized BINARY input len must be 2 times of Filter len";
+				die "DataPackager::LV::Pack, FIXED sized BINARY input len must be 4 times of Filter len";
 			}
 		}
 		elsif($self->{'format'} eq DataPackager::DataFormat->BCD) {
@@ -73,32 +83,38 @@ sub Pack {
 		}
 	}
 	elsif ($self->{'type'} eq DataPackager::PackagingType->VAR){
-		my $temp;
 		if($self->{'format'} eq DataPackager::DataFormat->BIN){
-			if(length($in)%2==0){
-				$temp = $in;
+			if(length($in)%2 != 0){
+				die "DataPackager::LV::Pack, LVAR sized BINARY input len must be even";
 			}
-			my $ss = toString(length($temp)/2);
-			if(length($ss)<=$self->{'length'}){
-				$out = HexString(PaddedFixedLenString($ss,$self->{'length'})).$temp;
+
+			if(4*length($in)<=$self->{'length'}){
+				my $lenStr = $self->PackLen(length($in)/2);
+				$out = $lenStr.$in;
 			}else{
 				die "DataPackager::LV::Pack, LVAR sized BINARY input len must be less than or equal to Filter len";
 			}
 		}
 		elsif($self->{'format'} eq DataPackager::DataFormat->BCD) {
-			$temp = PaddedFixedLenString($in,length($in)+length($in)%2);
-			my $ss = toString(length($in));
-			if(length($ss)<=2*$self->{'length'}){
-				$out = PaddedFixedLenString($ss,2*$self->{'length'}).$temp;
+			if(length($in)<=$self->{'length'}){
+				my $lenStr = $self->PackLen(length($in));
+				$out = $lenStr. PaddedFixedLenString($in,length($in)+length($in)%2);
 			}else{
-				die "DataPackager::LV::Pack, LVAR sized BCD input len must be less than or equal to 2 times Filter len";
+				die "DataPackager::LV::Pack, LVAR sized BCD input len must be less than or equal to Filter len";
+			}
+		}
+		elsif($self->{'format'} eq DataPackager::DataFormat->XBCD) {
+			if(length($in)<=$self->{'length'}){
+				my $lenStr = $self->PackLen(length($in));
+				$out = $lenStr. PaddedFixedLenString($in,length($in)+length($in)%2);
+			}else{
+				die "DataPackager::LV::Pack, LVAR sized BCD input len must be less than or equal to Filter len";
 			}
 		}
 		elsif($self->{'format'} eq DataPackager::DataFormat->ASC) {
-			$temp = HexString($in);
-			my $ss = toString(length($in));
-			if(length($ss)<=$self->{'length'}){
-				$out = HexString(PaddedFixedLenString($ss,$self->{'length'})).$temp;
+			if(length($in)<=$self->{'length'}){
+				my $lenStr = $self->PackLen(length($in));
+				$out = $lenStr. HexString($in);
 			}else{
 				die "DataPackager::LV::Pack, LVAR sized ASCII input len must be less than or equal to Filter len";
 			}
@@ -110,6 +126,28 @@ sub Pack {
 	}
 	print "DataPackager::LV::Pack out:$out \n";
 
+	return $out;
+}
+
+sub PackLen {
+	my ($self,$len)=@_;
+	print "DataPackager::LV::PackLen len:$len \n";
+	my $out;
+
+		if($self->{'lenFormat'} eq DataPackager::DataFormat->BIN){
+			$out = HexString(PaddedFixedLenString($len,$self->{'length'}/8));
+		}
+		elsif($self->{'lenFormat'} eq DataPackager::DataFormat->BCD) {
+			$out = PaddedFixedLenString( $len,length(toString($self->{'length'})) );
+		}
+		elsif($self->{'lenFormat'} eq DataPackager::DataFormat->ASC) {
+			$out = HexString(PaddedFixedLenString( $len,length(toString($self->{'length'})) ));
+		}
+		else{
+			die "DataPackager::LV::PackLen, Input format: ".$self->{'lenFormat'}." not recognized, valid values are (BINARY,BCD,ASCII)";
+		}
+
+	print "DataPackager::LV::PackLen out:$out \n";
 	return $out;
 }
 
