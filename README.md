@@ -24,12 +24,15 @@ pack(b,64,0123456789ABCDEF) = 0123456789ABCDEF ;
 
 ```
 ```perl
+#!/usr/bin/perl -w
+use lib "../lib";
 use DataPackager::LV;
 my $f = new DataPackager::LV();
 my $out = $f->Set('BIN','BIN','FIX',64)->Pack("0123456789ABCDEF");
 print $out,"\n";
 ```
 ```js
+#!/usr/bin/node
 var ISO8583 = require('iso-8583');
 var p = new ISO8583.Message();
 var msg = [
@@ -37,9 +40,9 @@ var msg = [
 ];
 var out = p.packSync(msg);
 console.log(out.join(''));
-
+// it does not works as expected
 ```
-it does not works as expected
+
 ### fixed len numeric data
 I will use iso field 4 (4 	n 12 	Amount, transaction ) as an example, assume the Amount=1000, assume we have function pack which pack the input data according to its format
 ```bash
@@ -47,12 +50,15 @@ pack(n,12,1000) = 000000001000 ;
 
 ```
 ```perl
+#!/usr/bin/perl -w
+use lib "../lib";
 use DataPackager::LV;
 my $f = new DataPackager::LV();
 my $out = $f->Set('BCD','BCD','FIX',12)->Pack("1000");
 print $out,"\n";
 ```
 ```js
+#!/usr/bin/node
 var ISO8583 = require('iso-8583');
 var p = new ISO8583.Message();
 var msg = [
@@ -65,16 +71,19 @@ console.log(out.join(''));
 ### fixed len alpha numeric data
 I will use iso field 37 (37 	an 12 	Retrieval reference number ) as an example, assume the refId=abcd1234wxyz, assume we have function pack which pack the input data according to its format
 ```bash
-pack(b,64,abcd1234wxyz) = 61626364313233347778797A ;
+pack(an,12,abcd1234wxyz) = 61626364313233347778797A ;
 
 ```
 ```perl
+#!/usr/bin/perl -w
+use lib "../lib";
 use DataPackager::LV;
 my $f = new DataPackager::LV();
 my $out = $f->Set('ASC','ASC','FIX',12)->Pack("abcd1234wxyz");
 print $out,"\n";
 ```
 ```js
+#!/usr/bin/node
 var ISO8583 = require('iso-8583');
 var p = new ISO8583.Message();
 var msg = [
@@ -91,12 +100,15 @@ pack(n..,19,1234567812345678) = 161234567812345678 ;
 
 ```
 ```perl
+#!/usr/bin/perl -w
+use lib "../lib";
 use DataPackager::LV;
 my $f = new DataPackager::LV();
 my $out = $f->Set('BCD','BCD','VAR',19)->Pack("1234567812345678");
 print $out,"\n";
 ```
 ```js
+#!/usr/bin/node
 var ISO8583 = require('iso-8583');
 var p = new ISO8583.Message();
 var msg = [
@@ -113,12 +125,15 @@ pack(ns..,28,1234567812345678=95) = 19313233343536373831323334353637383D3935 ;
 
 ```
 ```perl
+#!/usr/bin/perl -w
+use lib "../lib";
 use DataPackager::LV;
 my $f = new DataPackager::LV();
 my $out = $f->Set('BCD','ASC','VAR',28)->Pack("1234567812345678=95");
 print $out,"\n";
 ```
 ```js
+#!/usr/bin/node
 var ISO8583 = require('iso-8583');
 var p = new ISO8583.Message();
 var msg = [
