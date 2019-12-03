@@ -10,9 +10,13 @@ we have three type of data binary,numeric,alpha-numeric(ASCII)
 #### Packing Fixed length Data
 we will pack binary data as is (so no transformation will applay on binary data). numeric data will be transformed to packed-BCD format ( so for example 12 will be stored as one byte hexadesimal or 123 will be left padded with zero and stored as two byte hexadesimal 0123). AlphaNumeric characters will first represented by their ASCII code in hex, and resulted hex string will be stored ( so for example xMz12 will be tansformed to 784D7A3132 and stored in 5 bytes)
 #### Packing Variable length Data
-for variable length data we should add the length of data at the begining of it. the data length itself can be formatted in binary, packed-BCD or ASCII, but which format we should use? (you may know ISO8583 dose not have any varible length binary data)
-##### iso 8583 from wikipedia
+for variable length data we should add the length of data at the begining of it. the data length itself can be formatted in binary, packed-BCD or ASCII, but which format we should use? (you may know ISO-8583 v1987 dose not have any varible length binary data)
+##### ISO 8583 from wikipedia based on the ISO-8583 v1987 standard.
 LL can be one or two bytes. For example, if compressed as one hex byte, '27x means there are 27 VAR bytes to follow. If ASCII, the two bytes '32x, '37x mean there are 27 bytes to follow. Three-digit field length LLL uses two bytes with a leading '0' nibble if compressed, or three bytes if ASCII. The format of a VAR data element depends on the data element type. If numeric it will be compressed, e.g. 87456 will be represented by three hex bytes '087456x. If ASCII then one byte for each digit or character is used, e.g. '38x, '37x, '34x, '35x, '36x. 
+##### ISO 8583 jPOS Common Message Format based on the ISO-8583 v2003 standard.
+Variable length of up to maximum 'nn' characters or digits. All variable length fields shall in addition contain two (abbreviated as LLVAR), three positions (abbreviated as LLLVAR) or four positions (abbreviated as LLLLVAR) at the beginning of the data element representing the length of the field itself.
+
+For Fixed length or Variable length numeric field represented in BCD format, If the number of BCD digits is odd, a final 'F' is added to the right.
 ##### what about len format?
 In ISO-8583-v2003 the len format of all variable len data are packed-BCD, 
 but ISO-8583-v1987 dose not say if len format for variable len numeric data should be packed-BCD or ASCII, the same goes for AlphaNumeric data it does not say if len format for variable len alpha-numeric data should be packed-BCD or ASCII, for sure packed-BCD format is more size efficient, but it also make sense if we assume the len format should match the data format. (the free implimentation I have checked does not match in this regard.) Anyway I have implimented the packager so you can select the len format yourself
@@ -146,10 +150,10 @@ console.log(out.join(''));
 ```
 as you can see in this example although the variable type is alpha numeric the len type is packed BCD, but the iso8583parser from licklider.cl cannot parse it correctly, even if we change the len type to ASCII !
 ## Sample usage of this library
-Now I am going to create some compelete ISO-8583 message as an example, I will create ISO-8583 messages in all 1978, 1993 and 2003 format. If your implementation of ISO-8583 differ from the standard you can still use this library, you should just drive a new class from DataFormat and put it in lib/lib/DataFormat along other standard implimentation, (I will write a tutorial for this later :) )
+Now I am going to create some compelete ISO-8583 message as an example, I will create ISO-8583 messages format. If your implementation of ISO-8583 differ from the standard you can still use this library, you should just drive a new class from DataFormat and put it in lib/lib/DataFormat along other standard implimentation, (I will write a tutorial for this later :) )
 ### Authorization / Balance Inquiry
-Suppose we are going to sent a message with MTI=0100 and these fields ( 3=003000, 4=100, 7=1203204821, 11=5860, 14=2108, 42=1234567890), because I have no field over 64 the iso bitmap will be 64 bit binary and field 64 will be used for MAC
-### ISO 8583 v 1987 impelimentation 
+Suppose we are going to sent a message with MTI=100 and these fields ( 3=003000, 4=100, 7=1203204821, 11=5860, 14=2108, 42=1234567890), because I have no field over 64 the iso bitmap will be 64 bit binary and field 64 will be used for MAC
+### ISO-8583 v1987 impelimentation 
 ```perl
 #!/usr/bin/perl -w
 use strict;
@@ -171,7 +175,7 @@ my $p2 = new Packet;
 {
 	local $@;
 	eval {
-		{
+		{   # Packing Part
 			my $bitmap = new Bitmap(64);
 			my $fields = [ 3, 4, 7, 11, 14, 42, 64];
 			$bitmap->SetBits(@$fields);
@@ -210,7 +214,7 @@ my $p2 = new Packet;
 
 {
 	local $@;
-	eval {
+	eval {	# UnPacking Part
 		my ($out,$len,$str);
 		my $bitmap = new Bitmap(64);
 		$str = $p2->Data();
@@ -239,7 +243,7 @@ my $p2 = new Packet;
 }
 ```
 
-### ISO 8583 v 2003 impelimentation 
+### ISO 8583 v2003 impelimentation 
 ```perl
 #!/usr/bin/perl -w
 use strict;
@@ -261,7 +265,7 @@ my $p3 = new Packet;
 {
 	local $@;
 	eval {
-		{
+		{	# Packing Part
 			my $bitmap = new Bitmap(64);
 			my $fields = [ 3, 4, 7, 11, 14, 42, 64];
 			$bitmap->SetBits(@$fields);
@@ -308,7 +312,7 @@ my $p3 = new Packet;
 
 {
 	local $@;
-	eval {
+	eval {	# UnPacking Part
 		my ($out,$len,$str);
 		my $bitmap = new Bitmap(64);
 		$str = $p3->Data();
@@ -337,3 +341,5 @@ my $p3 = new Packet;
 	}	
 }
 ```
+## Refferences
+
