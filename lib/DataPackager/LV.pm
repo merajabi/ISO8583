@@ -73,8 +73,8 @@ sub Pack {
 			}
 		}
 		elsif($self->{'format'} eq DataPackager::DataFormat->ASC) {
-			if(length($in) == $self->{'length'}){
-				$out = HexString($in);
+			if(length($in) <= $self->{'length'}){
+				$out = HexString(PaddedFixedLenString($in,$self->{'length'}," ","RIGHT"));
 			}else{
 				die "DataPackager::LV::Pack, FIXED sized ASCII input len must be equal to Filter len";
 			}
@@ -134,21 +134,46 @@ sub PackLen {
 	print "DataPackager::LV::PackLen len:$len \n";
 	my $out;
 
-		if($self->{'lenFormat'} eq DataPackager::DataFormat->BIN){
-			$out = HexString(PaddedFixedLenString($len,$self->{'length'}/8));
-		}
-		elsif($self->{'lenFormat'} eq DataPackager::DataFormat->BCD) {
-			$out = PaddedFixedLenString( $len,length(toString($self->{'length'})) );
-		}
-		elsif($self->{'lenFormat'} eq DataPackager::DataFormat->ASC) {
-			$out = HexString(PaddedFixedLenString( $len,length(toString($self->{'length'})) ));
-		}
-		else{
-			die "DataPackager::LV::PackLen, Input format: ".$self->{'lenFormat'}." not recognized, valid values are (BINARY,BCD,ASCII)";
-		}
+	if($self->{'lenFormat'} eq DataPackager::DataFormat->BIN){
+		$out = HexString(PaddedFixedLenString($len,$self->{'length'}/8));
+	}
+	elsif($self->{'lenFormat'} eq DataPackager::DataFormat->BCD) {
+		$out = PaddedFixedLenString( $len,length(toString($self->{'length'})) );
+	}
+	elsif($self->{'lenFormat'} eq DataPackager::DataFormat->ASC) {
+		$out = HexString(PaddedFixedLenString( $len,length(toString($self->{'length'})) ));
+	}
+	else{
+		die "DataPackager::LV::PackLen, Input format: ".$self->{'lenFormat'}." not recognized, valid values are (BINARY,BCD,ASCII)";
+	}
 
 	print "DataPackager::LV::PackLen out:$out \n";
 	return $out;
+}
+
+sub UnPackLen {
+	my ($self,$in)=@_;
+#	print "DataPackager::LV::PackLen len:$len \n";
+	my $len;
+	my $out;
+
+	if($self->{'lenFormat'} eq DataPackager::DataFormat->BIN){
+		#$out = HexString(substr($in,$self->{'length'}/8));
+	}
+	elsif($self->{'lenFormat'} eq DataPackager::DataFormat->BCD) {
+		$len = length(toString($self->{'length'}));
+		$out = substr( $in, 0, $len );
+	}
+	elsif($self->{'lenFormat'} eq DataPackager::DataFormat->ASC) {
+		$len = 2*length(toString($self->{'length'}));
+		$out = HexToAscii( substr( $in, 0, $len ) );
+	}
+	else{
+		die "DataPackager::LV::PackLen, Input format: ".$self->{'lenFormat'}." not recognized, valid values are (BINARY,BCD,ASCII)";
+	}
+
+	print "DataPackager::LV::PackLen out:$len \n";
+	return ($out,$len,substr($in,$len));
 }
 
 #/*
@@ -166,48 +191,42 @@ sub UnPack{
 
 	if( $self->{'type'} eq DataPackager::PackagingType->FIX){
 		if( $self->{'format'} eq DataPackager::DataFormat->BIN){
-			$out = substr($in,0,$self->{'length'}*2);
-			$len=$self->{'length'};
+			$out = substr($in,0,$self->{'length'}/4);
+			$len=$self->{'length'}/4;
 		}
 		elsif( $self->{'format'} eq DataPackager::DataFormat->BCD) {
 			$out = substr($in,$self->{'length'}%2,$self->{'length'});
-			$len=($self->{'length'}+$self->{'length'}%2)/2;
+			$len=$self->{'length'}+$self->{'length'}%2;
 		}
 		elsif( $self->{'format'} eq DataPackager::DataFormat->ASC) {
 			$out = HexToAscii(substr($in,0,$self->{'length'}*2));
-			$len=$self->{'length'};
+			$len=$self->{'length'}*2;
 		}else{
 			die "DataPackager::LV::UnPack, Input format: ".$self->{'format'}." not recognized, valid values are (BINARY,BCD,ASCII)";
 		}
 	}
 	elsif ( $self->{'type'} eq DataPackager::PackagingType->VAR){
-		my $lenStr = substr($in,0,$self->{'length'}*2);
-		#lenStr.erase(0, std::min(lenStr.find_first_not_of('0'), lenStr.size()-1));
+		my ($lenData,$lenLen) = $self->UnPackLen($in);
 
 		if( $self->{'format'} eq DataPackager::DataFormat->BIN){
-			$len=HexToAscii($lenStr)*1;
-			$out = substr($in,2*$self->{'length'},2*$len);
 		}
 		elsif( $self->{'format'} eq DataPackager::DataFormat->BCD) {
-			$len=$lenStr*1;
-			$out = substr($in,2*$self->{'length'}+$len%2,$len);
-			$len=($len+$len%2)/2;
+			$out = substr($in,$lenLen,$lenData);
+			$len = $lenLen + $lenData;
 		}
 		elsif( $self->{'format'} eq DataPackager::DataFormat->ASC) {
-			$len = HexToAscii($lenStr)*1;
-			$out = HexToAscii(substr($in,2*$self->{'length'},2*$len));
+			$out = HexToAscii(substr($in,$lenLen,2*$lenData));
+			$len = $lenLen + 2*$lenData;
 		}else{
 			die "DataPackager::LV::UnPack, Input format: ".$self->{'format'}." not recognized, valid values are (BINARY,BCD,ASCII)";
 		}
-
-		$len+=$self->{'length'};
 	}else{
 		die "DataPackager::LV::UnPack, Input type: ".$self->{'type'}." not recognized, valid values are (FIXED,LVAR)";
 	}
 
-	print "DataPackager::LV::UnPack out:$out len:$len\n";
+	print "DataPackager::LV::UnPack out:$out len:".length($out)."\n";
 
-	return ($out,$len,substr($in,2*$len));
+	return ($out,$len,substr($in,$len));
 }
 
 1;

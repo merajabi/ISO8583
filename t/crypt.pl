@@ -3,10 +3,10 @@
 use Data::Dumper;
 use Modern::Perl;
 
-use Digest::EMAC qw(emac hexdigest base64digest);
+#use Digest::EMAC qw(emac hexdigest base64digest);
 use Crypt::DES;
-use Crypt::TripleDES::CBC;
-use Digest::CMAC;
+#use Crypt::TripleDES::CBC;
+#use Digest::CMAC;
 
 my $crypto = "Crypt::DES"; # "Crypt::DES" Crypt::Blowfish
 my $blocksize = 8;

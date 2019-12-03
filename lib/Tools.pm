@@ -38,10 +38,15 @@ sub HexString {
 }
 
 sub PaddedFixedLenString {
-	my ($val,$len,$ch)=@_;
+	my ($val,$len,$ch,$dir)=@_;
 	$ch  ||= '0';
-#	$len ||= 0;
-	my $str=($ch x ($len-length($val))).$val;
+	$dir ||= "LEFT";
+	my $str;
+	if($dir eq "RIGHT"){
+		$str=$val.($ch x ($len-length($val)));
+	}else{
+		$str=($ch x ($len-length($val))).$val;
+	}
 	return $str;
 }
 
