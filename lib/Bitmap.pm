@@ -1,4 +1,4 @@
-package BitSet;
+package Bitmap;
 
 use strict;
 use warnings;
@@ -28,6 +28,23 @@ sub SetBits {
 	}
 }
 
+sub GetBits {
+	my ($self) = @_;
+	my $fields = [];
+	for(my $i=0; $i < $self->{'bits'}; $i++){
+		my $x = $self->{'bitmap'}[$i];
+		for(my $j=0; $j < 8; $j++){
+			if($x & 1){
+				#print $i," ",$j," ",(8-$j)+$i*8,"\n";
+				push @$fields,(8-$j)+$i*8;
+			}
+			$x = $x >>1;
+		}
+	}
+	$fields = [ sort { $a <=> $b } @$fields ];
+	return $fields;
+}
+
 sub GetHexStr {
 	my ($self) = @_;
 	my $str;
@@ -44,22 +61,6 @@ sub SetHexStr{
 	}
 }
 
-sub GetFields {
-	my ($self) = @_;
-	my $fields = [];
-	for(my $i=0; $i < $self->{'bits'}; $i++){
-		my $x = $self->{'bitmap'}[$i];
-		for(my $j=0; $j < 8; $j++){
-			if($x & 1){
-				#print $i," ",$j," ",(8-$j)+$i*8,"\n";
-				push @$fields,(8-$j)+$i*8;
-			}
-			$x = $x >>1;
-		}
-	}
-	$fields = [ sort { $a <=> $b } @$fields ];
-	return $fields;
-}
 
 1;
 

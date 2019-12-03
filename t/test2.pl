@@ -13,7 +13,7 @@ use DataPackager::LV;
 use DataFormat::ISO8583;
 use Tools;
 use Packet;
-use BitSet;
+use Bitmap;
 
 my $date	= strftime "%y%m%d", localtime time;
 my $time	= strftime "%H%M%S", localtime time;

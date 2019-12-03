@@ -13,7 +13,7 @@ use DataPackager::LV;
 use DataFormat::ISO8583;
 use Tools;
 use Packet;
-use BitSet;
+use Bitmap;
 
 my $date	= strftime "%y%m%d", localtime time;
 my $time	= strftime "%H%M%S", localtime time;
@@ -29,11 +29,10 @@ my $p2 = new Packet;
 my $p3 = new Packet;
 my $p4 = new Packet;
 
-
 {
 	local $@;
 	eval {
-		my $bitmap1 = new BitSet(128);
+		my $bitmap1 = new Bitmap(128);
 		my $fields = ${$iso->Fields("1200310000")}{Q};
 		print "iso fields: ", join(',',@$fields),"\n";
 
@@ -58,7 +57,6 @@ my $p4 = new Packet;
 		$p1 .= $f->Set($iso->FieldFormat(53))->Pack("1234567812345678");	# 53 Security Related Control Information ->Terminal Serial Number
 		$p1 .= $f->Set($iso->FieldFormat(62))->Pack("010203");				# 62 Application Version
 		$p1 .= $f->Set($iso->FieldFormat(63))->Pack("01");					# 63 Application Name
-#		$p1 .= $f->Set($iso->FieldFormat(103))->Pack("");					# 103 Account Identification 2
 		$p1 .= $f->Set($iso->FieldFormat(127))->Pack("FFFFFFFF");			# 127 Write Command
 
 		print $p1->Data(),"\n";

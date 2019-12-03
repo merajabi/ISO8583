@@ -1,4 +1,4 @@
-package DataFormat::ISO8583;
+package DataFormat::ISO8583v93;
 
 use strict;
 use warnings;
@@ -17,9 +17,36 @@ sub new {
 
 sub InitFields {
 	my ($self) = @_;
-#	$self->{'fields'}{1200310000}{Q} = [1,2,3,4,7,11,12,18,35,37,41,49,52,53,62,63,103,127,128];
-	$self->{'fields'}{1200310000}{Q} = [1,2,3,4,7,11,12,18,35,37,41,52,53,62,63,127,128];
-	$self->{'fields'}{1200310000}{A} = [1,2,3,4,7,11,12,18,30,31,37,39,41,54,62,63,100,103,127,128];
+	$self->{'condition'}={M=>"Mandatory",
+}
+	$self->{'fields'}{0100} = [ "C", "M", "M", "C", "M", "M", "O", "O", "O", "O", "O", "O", "O", "O", "O", "O", "O", "O", "O", "O", "NP", "NP", "NP", "O", "O", "O", "M", "O", "O", "O", "O", "O", "O", "O", "O", "C", "M", "O", "O", "O", "O", "O", "C", "C", "O", "O", "O", "O", "O", "O", "O", "O", "O", "O", "O", "O", "O", "M", "M", "O", "O", "O", "O", "O", "M", "C", "O", "O", "O", "O", "O", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "NP", "NP", "NP", "NP", "O", "C", "C", "C", "M", "M", "M", "NP", "M", "NP", "NP", "NP", "NP", "NP", "NP", "NP", "NP", "NP", "NP", "NP", "NP", "O", "M", "M", "O", "O", "C", "C", "O", "NP", "NP", "NP", "NP", "O", "C", "O", "NP", "NP", "NP", "NP", "NP", "O", "O", "O", "O", "O", "O", "O", "NP", "NP", "NP", "NP", "NP", "NP", "NP", "NP", "NP", "NP", "NP", "NP", "NP", "NP", "O", "C", "O", "C", "C", "C", "C", "C", "C", "C", "C", "O", "NP", "NP", "NP", "C", "M", "C", "C", "M", "C", "C", "C", "O", "O", "C", "O", "O", "NP", "O", "O", "O", "O", "NP", "NP", "NP", "NP", "C", "C", "C" ];
+	$self->{'fields'}{0110} = [];
+	$self->{'fields'}{0120} = [];
+	$self->{'fields'}{0130} = [];
+
+	$self->{'fields'}{0200} = [];
+	$self->{'fields'}{0210} = [];
+	$self->{'fields'}{0220} = [];
+	$self->{'fields'}{0230} = [];
+
+	$self->{'fields'}{0300} = [];
+	$self->{'fields'}{0302} = [];
+	$self->{'fields'}{0310} = [];
+	$self->{'fields'}{0312} = [];
+	$self->{'fields'}{0322} = [];
+	$self->{'fields'}{0332} = [];
+	$self->{'fields'}{0382} = [];
+	$self->{'fields'}{0392} = [];
+	$self->{'fields'}{0384} = [];
+	$self->{'fields'}{0394} = [];
+
+	$self->{'fields'}{0420} = [];
+	$self->{'fields'}{0430} = [];
+
+	$self->{'fields'}{0620} = [];
+
+	$self->{'fields'}{0800} = [];
+	$self->{'fields'}{0810} = [];
 }
 
 # DATA: BIN,	FIX,	64 => 64 bits => 64/8 = 8 bytes
@@ -34,7 +61,7 @@ sub InitFields {
 sub InitFormats {
 	my ($self) = @_;
 #								LEN		DATA	TYPE	LEN		Comment
-	$self->{'format'}{1}	= ['BIN',	'BIN',	'FIX',	64,	"1	Second Bitmap"];				
+	$self->{'format'}{1}	= ['BIN',	'BIN',	'FIX',	64,	"1	Second Bitmap"]; # will be calculated automatically
 	$self->{'format'}{2}	= ['BCD',	'BCD',	'VAR',	19,	"2	Primary account number (PAN)"];
 	$self->{'format'}{3}	= ['BCD',	'BCD',	'FIX',	6,	"3	Processing code"];
 	$self->{'format'}{4}	= ['BCD',	'BCD',	'FIX',	12,	"4	Amount, transaction"];
