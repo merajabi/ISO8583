@@ -29,7 +29,7 @@ my $p2 = new Packet;
 
 			$p1 .= $f->Set('BCD', 'BCD', 'FIX', 6)->Pack("003000");				# 3 Processing Code
 			$p1 .= $f->Set('BCD', 'BCD', 'FIX', 12)->Pack("100");				# 4 Transaction Amount
-			$p1 .= $f->Set('BCD', 'BCD', 'FIX', 10)->Pack("1203204821");		# 7 Transmission Date & Time
+			$p1 .= $f->Set('BCD', 'BCD', 'FIX', 10)->Pack("1225084821");		# 7 Transmission Date & Time
 			$p1 .= $f->Set('BCD', 'BCD', 'FIX', 6)->Pack("5860");				# 11 Systems Trace Audit Number (STAN)
 			$p1 .= $f->Set('BCD', 'BCD', 'FIX', 4)->Pack("2108");				# 14 Expiration Date
 			$p1 .= $f->Set('ASC', 'ASC', 'FIX', 15)->Pack("1234567890");		# 42 Card Acceptor Identification Code
@@ -38,7 +38,7 @@ my $p2 = new Packet;
 		}
 		{
 			my $data = $p1->Data();
-			my $mac=`./crypt.pl "MAC" "0123456789ABCDEF" $data 16`;
+			my $mac=`./crypt.pl "MAC" "0123456789ABCDEF" $data 16`;				# assume the MAC Key is = 0123456789ABCDEF
 			chomp($mac);
 
 			# ISO8583 messaging has no routing information, so is sometimes used with a TPDU header. 

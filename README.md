@@ -152,7 +152,7 @@ as you can see in this example although the variable type is alpha numeric the l
 ## Sample usage of this library
 Now I am going to create some compelete ISO-8583 message as an example, I will create ISO-8583 messages format. If your implementation of ISO-8583 differ from the standard you can still use this library, you should just drive a new class from DataFormat and put it in lib/lib/DataFormat along other standard implimentation, (I will write a tutorial for this later :) )
 ### Authorization / Balance Inquiry
-Suppose we are going to sent a message with MTI=100 and these fields ( 3=003000, 4=100, 7=1203204821, 11=5860, 14=2108, 42=1234567890), because I have no field over 64 the iso bitmap will be 64 bit binary and field 64 will be used for MAC
+Suppose we are going to sent a message with MTI=100 and these fields ( 3=003000, 4=100, 7=1225084821, 11=5860, 14=2108, 42=1234567890), because I have no field over 64 the iso bitmap will be 64 bit binary and field 64 will be used for MAC
 ### ISO-8583 v1987 impelimentation 
 ```perl
 #!/usr/bin/perl -w
@@ -186,7 +186,7 @@ my $p2 = new Packet;
 
 			$p1 .= $f->Set('BCD', 'BCD', 'FIX', 6)->Pack("003000");				# 3 Processing Code
 			$p1 .= $f->Set('BCD', 'BCD', 'FIX', 12)->Pack("100");				# 4 Transaction Amount
-			$p1 .= $f->Set('BCD', 'BCD', 'FIX', 10)->Pack("1203204821");		# 7 Transmission Date & Time
+			$p1 .= $f->Set('BCD', 'BCD', 'FIX', 10)->Pack("1225084821");		# 7 Transmission Date & Time
 			$p1 .= $f->Set('BCD', 'BCD', 'FIX', 6)->Pack("5860");				# 11 Systems Trace Audit Number (STAN)
 			$p1 .= $f->Set('BCD', 'BCD', 'FIX', 4)->Pack("2108");				# 14 Expiration Date
 			$p1 .= $f->Set('ASC', 'ASC', 'FIX', 15)->Pack("1234567890");		# 42 Card Acceptor Identification Code
@@ -242,7 +242,50 @@ my $p2 = new Packet;
 	}	
 }
 ```
+shell output
 
+```shell
+bitmap: 3224000000400001
+DataPackager::LV::Pack in:0100 
+DataPackager::LV::Pack out:0100 
+DataPackager::LV::Pack in:3224000000400001 
+DataPackager::LV::Pack out:3224000000400001 
+DataPackager::LV::Pack in:003000 
+DataPackager::LV::Pack out:003000 
+DataPackager::LV::Pack in:100 
+DataPackager::LV::Pack out:000000000100 
+DataPackager::LV::Pack in:1225084821 
+DataPackager::LV::Pack out:1225084821 
+DataPackager::LV::Pack in:5860 
+DataPackager::LV::Pack out:005860 
+DataPackager::LV::Pack in:2108 
+DataPackager::LV::Pack out:2108 
+DataPackager::LV::Pack in:1234567890 
+DataPackager::LV::Pack out:313233343536373839302020202020 
+ISO Message without MAC: 0100322400000040000100300000000000010012250848210058602108313233343536373839302020202020
+DataPackager::LV::Pack in:ed797c20a4eecd58 
+DataPackager::LV::Pack out:ed797c20a4eecd58 
+ISO Message: 0100322400000040000100300000000000010012250848210058602108313233343536373839302020202020ed797c20a4eecd58
+DataPackager::LV::UnPack in:0100322400000040000100300000000000010012250848210058602108313233343536373839302020202020ed797c20a4eecd58 
+DataPackager::LV::UnPack out:0100 len:4
+DataPackager::LV::UnPack in:322400000040000100300000000000010012250848210058602108313233343536373839302020202020ed797c20a4eecd58 
+DataPackager::LV::UnPack out:3224000000400001 len:16
+bitmap fields: 3 4 7 11 14 42 64
+DataPackager::LV::UnPack in:00300000000000010012250848210058602108313233343536373839302020202020ed797c20a4eecd58 
+DataPackager::LV::UnPack out:003000 len:6
+DataPackager::LV::UnPack in:00000000010012250848210058602108313233343536373839302020202020ed797c20a4eecd58 
+DataPackager::LV::UnPack out:000000000100 len:12
+DataPackager::LV::UnPack in:12250848210058602108313233343536373839302020202020ed797c20a4eecd58 
+DataPackager::LV::UnPack out:1225084821 len:10
+DataPackager::LV::UnPack in:0058602108313233343536373839302020202020ed797c20a4eecd58 
+DataPackager::LV::UnPack out:005860 len:6
+DataPackager::LV::UnPack in:2108313233343536373839302020202020ed797c20a4eecd58 
+DataPackager::LV::UnPack out:2108 len:4
+DataPackager::LV::UnPack in:313233343536373839302020202020ed797c20a4eecd58 
+DataPackager::LV::UnPack out:1234567890      len:15
+DataPackager::LV::UnPack in:ed797c20a4eecd58 
+DataPackager::LV::UnPack out:ed797c20a4eecd58 len:16
+```
 ### ISO 8583 v2003 impelimentation 
 ```perl
 #!/usr/bin/perl -w
@@ -299,7 +342,7 @@ my $p3 = new Packet;
 		}
 		{
 			my $hexlen = sprintf( "%04x",length($p2->Data())/2 );
-			$p3 .= $f->Set('BIN', 'BIN', 'FIX', 16)->Pack($hexlen);
+			$p3 .= $f->Set('BIN', 'BIN', 'FIX', 16)->Pack($hexlen);				# Message length represented as two bytes in network byte order (BIG ENDIAN)
 			$p3 .= $p2;
 
 			print "ISO Message: ", $p3->Data(), "\n";
@@ -317,7 +360,7 @@ my $p3 = new Packet;
 		my $bitmap = new Bitmap(64);
 		$str = $p3->Data();
 
-		($out,$len,$str) = $f->Set('BIN', 'BIN', 'FIX', 16)->UnPack($str);		# TPDU	uncomment this line if your implimentation need TPDU header
+		($out,$len,$str) = $f->Set('BIN', 'BIN', 'FIX', 16)->UnPack($str);		# Message length represented as two bytes in network byte order (BIG ENDIAN)
 		#($out,$len,$str) = $f->Set('BCD', 'BIN', 'FIX', 40)->UnPack($str);		# TPDU	uncomment this line if your implimentation need TPDU header
 		($out,$len,$str) = $f->Set('BCD', 'BCD', 'FIX', 4)->UnPack($str);		# MTI
 		($out,$len,$str) = $f->Set('BIN', 'BIN', 'FIX', 64)->UnPack($str);		# bitmap
@@ -340,6 +383,59 @@ my $p3 = new Packet;
 		exit;
 	}	
 }
+```
+shell output
+
+```shell
+bitmap: 3224000000400001
+DataPackager::LV::Pack in:2100 
+DataPackager::LV::Pack out:2100 
+DataPackager::LV::Pack in:3224000000400001 
+DataPackager::LV::Pack out:3224000000400001 
+DataPackager::LV::Pack in:003000 
+DataPackager::LV::Pack out:303033303030 
+DataPackager::LV::Pack in:9782 
+DataPackager::LV::Pack out:9782 
+DataPackager::LV::Pack in:100 
+DataPackager::LV::Pack out:000000000100 
+DataPackager::LV::Pack in:1225084821 
+DataPackager::LV::Pack out:1225084821 
+DataPackager::LV::Pack in:5860 
+DataPackager::LV::Pack out:000000005860 
+DataPackager::LV::Pack in:2108 
+DataPackager::LV::Pack out:2108 
+DataPackager::LV::Pack in:1234567890 
+DataPackager::LV::PackLen len:10 
+DataPackager::LV::PackLen out:10 
+DataPackager::LV::Pack out:1031323334353637383930 
+ISO Message without MAC: 210032240000004000013030333030309782000000000100122508482100000000586021081031323334353637383930
+DataPackager::LV::Pack in:8c349356f512475f 
+DataPackager::LV::Pack out:8c349356f512475f 
+DataPackager::LV::Pack in:0038 
+DataPackager::LV::Pack out:0038 
+ISO Message: 00382100322400000040000130303330303097820000000001001225084821000000005860210810313233343536373839308c349356f512475f
+DataPackager::LV::UnPack in:00382100322400000040000130303330303097820000000001001225084821000000005860210810313233343536373839308c349356f512475f 
+DataPackager::LV::UnPack out:0038 len:4
+DataPackager::LV::UnPack in:2100322400000040000130303330303097820000000001001225084821000000005860210810313233343536373839308c349356f512475f 
+DataPackager::LV::UnPack out:2100 len:4
+DataPackager::LV::UnPack in:322400000040000130303330303097820000000001001225084821000000005860210810313233343536373839308c349356f512475f 
+DataPackager::LV::UnPack out:3224000000400001 len:16
+bitmap fields: 3 4 7 11 14 42 64
+DataPackager::LV::UnPack in:30303330303097820000000001001225084821000000005860210810313233343536373839308c349356f512475f 
+DataPackager::LV::UnPack out:003000 len:6
+DataPackager::LV::UnPack in:97820000000001001225084821000000005860210810313233343536373839308c349356f512475f 
+DataPackager::LV::UnPack out:9782000000000100 len:16
+DataPackager::LV::UnPack in:1225084821000000005860210810313233343536373839308c349356f512475f 
+DataPackager::LV::UnPack out:1225084821 len:10
+DataPackager::LV::UnPack in:000000005860210810313233343536373839308c349356f512475f 
+DataPackager::LV::UnPack out:000000005860 len:12
+DataPackager::LV::UnPack in:210810313233343536373839308c349356f512475f 
+DataPackager::LV::UnPack out:2108 len:4
+DataPackager::LV::UnPack in:10313233343536373839308c349356f512475f 
+DataPackager::LV::PackLen out:2 
+DataPackager::LV::UnPack out:1234567890 len:10
+DataPackager::LV::UnPack in:8c349356f512475f 
+DataPackager::LV::UnPack out:8c349356f512475f len:16
 ```
 ## Refferences
 

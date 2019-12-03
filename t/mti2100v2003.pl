@@ -41,7 +41,7 @@ my $p3 = new Packet;
 		}
 		{
 			my $data = $p1->Data();
-			my $mac=`./crypt.pl "MAC" "0123456789ABCDEF" $data 16`;
+			my $mac=`./crypt.pl "MAC" "0123456789ABCDEF" $data 16`;				# assume the MAC Key is = 0123456789ABCDEF
 			chomp($mac);
 
 			# ISO8583 messaging has no routing information, so is sometimes used with a TPDU header. 
@@ -52,7 +52,7 @@ my $p3 = new Packet;
 		}
 		{
 			my $hexlen = sprintf( "%04x",length($p2->Data())/2 );
-			$p3 .= $f->Set('BIN', 'BIN', 'FIX', 16)->Pack($hexlen);
+			$p3 .= $f->Set('BIN', 'BIN', 'FIX', 16)->Pack($hexlen);				# Message length represented as two bytes in network byte order (BIG ENDIAN)
 			$p3 .= $p2;
 
 			print "ISO Message: ", $p3->Data(), "\n";
@@ -70,7 +70,7 @@ my $p3 = new Packet;
 		my $bitmap = new Bitmap(64);
 		$str = $p3->Data();
 
-		($out,$len,$str) = $f->Set('BIN', 'BIN', 'FIX', 16)->UnPack($str);		# TPDU	uncomment this line if your implimentation need TPDU header
+		($out,$len,$str) = $f->Set('BIN', 'BIN', 'FIX', 16)->UnPack($str);		# Message length represented as two bytes in network byte order (BIG ENDIAN)
 		#($out,$len,$str) = $f->Set('BCD', 'BIN', 'FIX', 40)->UnPack($str);		# TPDU	uncomment this line if your implimentation need TPDU header
 		($out,$len,$str) = $f->Set('BCD', 'BCD', 'FIX', 4)->UnPack($str);		# MTI
 		($out,$len,$str) = $f->Set('BIN', 'BIN', 'FIX', 64)->UnPack($str);		# bitmap
