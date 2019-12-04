@@ -3,6 +3,8 @@ package DataPackager::LV;
 use strict;
 use warnings;
 
+use Data::Dumper;
+
 use parent qw(DataPackager);
 DataFilter::DataFormat->import;
 DataFilter::PackagingType->import;
@@ -11,9 +13,18 @@ use Tools;
 sub new {
 	my ($class, $args) = @_;
 	my $self = $class->SUPER::new;
+	$self->SetPad($$args{'PadCharBCD'} || '0' ,$$args{'PadAlignBCD'} || "LEFT", $$args{'PadCharASC'} || "\x{20}", $$args{'PadAlignBCD'} || "RIGHT" );
 	$self->Set($$args{'lenFormat'} || DataPackager::DataFormat->BCD, $$args{'format'} || DataPackager::DataFormat->BCD, $$args{'type'}   || DataPackager::PackagingType->FIX, $$args{'length'} || 1 );
     return $self;
 };
+
+sub SetPad {
+	my ($self,$bcdPad,$bcdPadAlign,$ascPad,$ascPadAlign)=@_;
+	$self->{'PadCharBCD'} = $bcdPad;
+	$self->{'PadAlignBCD'} = $bcdPadAlign;
+	$self->{'PadCharASC'} = $ascPad;
+	$self->{'PadAlignASC'} = $ascPadAlign;
+}
 
 sub Set {
 	my ($self,$lenFormat,$format,$type,$length)=@_;
@@ -67,14 +78,21 @@ sub Pack {
 		}
 		elsif($self->{'format'} eq DataPackager::DataFormat->BCD) {
 			if(length($in)<=$self->{'length'}){
-				$out = PaddedFixedLenString($in,$self->{'length'}+$self->{'length'}%2);
+				$out = PaddedFixedLenString($in,$self->{'length'}+$self->{'length'}%2, $self->{'PadCharBCD'}, $self->{'PadAlignBCD'});
+			}else{
+				die "DataPackager::LV::Pack, FIXED sized BCD input len must be less than or equal to Filter len";
+			}
+		}
+		elsif($self->{'format'} eq DataPackager::DataFormat->XBCD) {
+			if(length($in)<=$self->{'length'}){
+				$out = (($in>=0)?'C':'D').PaddedFixedLenString($in,$self->{'length'}+$self->{'length'}%2-1, $self->{'PadCharBCD'}, $self->{'PadAlignBCD'});
 			}else{
 				die "DataPackager::LV::Pack, FIXED sized BCD input len must be less than or equal to Filter len";
 			}
 		}
 		elsif($self->{'format'} eq DataPackager::DataFormat->ASC) {
 			if(length($in) <= $self->{'length'}){
-				$out = HexString(PaddedFixedLenString($in,$self->{'length'}," ","RIGHT"));
+				$out = HexString(PaddedFixedLenString($in,$self->{'length'}, $self->{'PadCharASC'}, $self->{'PadAlignASC'}));
 			}else{
 				die "DataPackager::LV::Pack, FIXED sized ASCII input len must be equal to Filter len";
 			}
@@ -98,11 +116,12 @@ sub Pack {
 		elsif($self->{'format'} eq DataPackager::DataFormat->BCD) {
 			if(length($in)<=$self->{'length'}){
 				my $lenStr = $self->PackLen(length($in));
-				$out = $lenStr. PaddedFixedLenString($in,length($in)+length($in)%2);
+				$out = $lenStr. PaddedFixedLenString($in,length($in)+length($in)%2, $self->{'PadCharBCD'}, $self->{'PadAlignBCD'});
 			}else{
 				die "DataPackager::LV::Pack, LVAR sized BCD input len must be less than or equal to Filter len";
 			}
 		}
+=pod
 		elsif($self->{'format'} eq DataPackager::DataFormat->XBCD) {
 			if(length($in)<=$self->{'length'}){
 				my $lenStr = $self->PackLen(length($in));
@@ -111,6 +130,7 @@ sub Pack {
 				die "DataPackager::LV::Pack, LVAR sized BCD input len must be less than or equal to Filter len";
 			}
 		}
+=cut
 		elsif($self->{'format'} eq DataPackager::DataFormat->ASC) {
 			if(length($in)<=$self->{'length'}){
 				my $lenStr = $self->PackLen(length($in));
@@ -124,7 +144,7 @@ sub Pack {
 	}else{
 		die "DataPackager::LV::Pack, Input type: ".$self->{'type'}." not recognized, valid values are (FIXED,LVAR)";
 	}
-	print "DataPackager::LV::Pack out:$out \n";
+	print "DataPackager::LV::Pack len:".length($out)." out:$out \n";
 
 	return $out;
 }
@@ -195,11 +215,30 @@ sub UnPack{
 			$len=$self->{'length'}/4;
 		}
 		elsif( $self->{'format'} eq DataPackager::DataFormat->BCD) {
-			$out = substr($in,$self->{'length'}%2,$self->{'length'});
+			$out = substr($in,0,$self->{'length'}+$self->{'length'}%2);
+			if($self->{'PadAlignBCD'} eq "LEFT"){
+				$out =~ s/^$self->{'PadCharBCD'}*//;
+			}else{
+				$out =~ s/$self->{'PadCharBCD'}*$//;
+			}
+			$len=$self->{'length'}+$self->{'length'}%2;
+		}
+		elsif( $self->{'format'} eq DataPackager::DataFormat->XBCD) {
+			$out = substr($in,1,$self->{'length'}-1);
+			if($self->{'PadAlignBCD'} eq "LEFT"){
+				$out =~ s/^$self->{'PadCharBCD'}*//;
+			}else{
+				$out =~ s/$self->{'PadCharBCD'}*$//;
+			}
 			$len=$self->{'length'}+$self->{'length'}%2;
 		}
 		elsif( $self->{'format'} eq DataPackager::DataFormat->ASC) {
 			$out = HexToAscii(substr($in,0,$self->{'length'}*2));
+			if($self->{'PadAlignASC'} eq "LEFT"){
+				$out =~ s/^$self->{'PadCharASC'}*//;
+			}else{
+				$out =~ s/$self->{'PadCharASC'}*$//;
+			}
 			$len=$self->{'length'}*2;
 		}else{
 			die "DataPackager::LV::UnPack, Input format: ".$self->{'format'}." not recognized, valid values are (BINARY,BCD,ASCII)";
@@ -211,7 +250,14 @@ sub UnPack{
 		if( $self->{'format'} eq DataPackager::DataFormat->BIN){
 		}
 		elsif( $self->{'format'} eq DataPackager::DataFormat->BCD) {
+			$lenData+=$lenData%2;
 			$out = substr($in,$lenLen,$lenData);
+			if($self->{'PadAlignBCD'} eq "LEFT"){
+				$out =~ s/^$self->{'PadCharBCD'}*//;
+			}else{
+				$out =~ s/$self->{'PadCharBCD'}*$//;
+			}
+
 			$len = $lenLen + $lenData;
 		}
 		elsif( $self->{'format'} eq DataPackager::DataFormat->ASC) {
@@ -224,7 +270,7 @@ sub UnPack{
 		die "DataPackager::LV::UnPack, Input type: ".$self->{'type'}." not recognized, valid values are (FIXED,LVAR)";
 	}
 
-	print "DataPackager::LV::UnPack out:$out len:".length($out)."\n";
+	print "DataPackager::LV::UnPack len: $len len(out):".length($out)." out:$out\n";
 
 	return ($out,$len,substr($in,$len));
 }

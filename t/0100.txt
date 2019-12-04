@@ -1,0 +1,63 @@
+# ISO8583 messaging has no routing information, so is sometimes used with a TPDU header. 
+# TPDU:A0B0D0E0F0
+
+# Message Type Identifier
+MTI:0100
+
+#2	Primary account number (PAN)
+2:1234567812345678
+
+ # 3 Processing Code
+3:003000
+  
+# 4 Transaction Amount
+4: 100
+
+# 7 Transmission Date & Time
+7 : 1225084821
+
+# 11 Systems Trace Audit Number (STAN)
+ 11: 5860
+
+# 12	Local transaction time (hhmmss)
+12:084821
+
+# 13	Local transaction date (MMDD)
+13:1225
+
+# 14 Expiration Date
+ 14 : 2108
+
+# 18	Merchant type, or merchant category code
+18:0002
+
+# 22	Point of service entry mode
+22:02
+
+# 25	Point of service condition code
+25:01
+
+# 28	Amount, transaction fee
+28:0
+
+# 32	Acquiring institution identification code
+32:708400001
+
+# 37	Retrieval reference number
+37: 225
+
+# 41	Card acceptor terminal identification
+41:12345678
+
+# 42 Card Acceptor Identification Code
+42: 1234567890
+
+# 43	Card acceptor name/location (1–23 street address, –36 city, –38 state, 39–40 country)
+43: Raha Rajabi, Azadi, Tehran, Tehran, Iran
+
+# 49	Currency code, transaction
+49:463
+
+# 128	Message authentication code
+128: 0123456789ABCDEF
+

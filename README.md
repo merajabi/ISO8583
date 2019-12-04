@@ -437,5 +437,331 @@ DataPackager::LV::UnPack out:1234567890 len:10
 DataPackager::LV::UnPack in:8c349356f512475f 
 DataPackager::LV::UnPack out:8c349356f512475f len:16
 ```
+### General Porpuse Packager
+In this section I am going to impeliment more general porpuse packager, I will abstract away the field type in ISO8583v87,ISO8583v93,ISO8583v03 classes, and read the input data from a text file, Mandatory, Conditional and Optional fields for each message type is also defined in ISO8583 classes.
+```perl
+#!/usr/bin/perl -w
+use strict;
+use warnings;
+use lib "../lib";
+
+use Data::Dumper;
+
+use Tools;
+use Packet;
+use Bitmap;
+use DataPackager::LV;
+use DataFormat::ISO8583v87;
+
+my $f = new DataPackager::LV();  # BIN BCD ASC # FIX VAR
+my $iso = new DataFormat::ISO8583v87();
+my $p1 = new Packet;
+my $p2 = new Packet;
+
+my $dataHash={};
+my $mti;
+my $tpdu;
+my $bitlen;
+my $macKey;
+{
+	local $@;
+	eval {
+		{
+
+			while(my $line = <STDIN>) {
+				chomp($line);
+				$line =~ s/^\s+//;
+				next if( ! length $line or $line =~ m/^#/);
+				if($line =~ m/^(\d+)\s*:\s*(.+)/){
+					$$dataHash{$1} = $2;
+				}elsif ($line =~ m/^(MTI|TPDU)\s*:\s*(.+)/i){
+					$$dataHash{uc $1} = $2;
+				}else{
+					die "Invalid input format: $line\n"
+				}
+			}
+			die "No MTI code provided" if( ! exists $$dataHash{"MTI"});
+			$mti = $$dataHash{"MTI"};
+			delete $$dataHash{"MTI"};
+			
+			if(exists $$dataHash{"TPDU"}){
+				$tpdu = $$dataHash{"TPDU"}; 
+				delete $$dataHash{"TPDU"};
+			}
+
+			if(exists $$dataHash{"64"}){
+				$bitlen = 64;
+				$macKey = $$dataHash{"64"};
+			}elsif(exists $$dataHash{"128"}){
+				$bitlen = 128;
+				$macKey = $$dataHash{"128"};
+			}else{
+				die "Message authentication code 64 or 128 not exists.\n";
+			}
+
+
+			my $bitmap = new Bitmap($bitlen);
+			$bitmap->SetBits(keys %$dataHash);
+			print "bitmap fields: ",join(' ',@{$bitmap->GetBits()}),"\n";
+			print "bitmap: ",$bitmap->GetHexStr(),"\n";
+
+			my $fieldList = [ sort { $a <=> $b } @{$iso->GetBits($mti)} ];
+			my $fieldType = $iso->GetFields($mti);
+
+			$p1 .= $f->Set('BCD', 'BCD', 'FIX', 4)->Pack($mti);				# MTI code
+			$p1 .= $f->Set('BIN', 'BIN', 'FIX', $bitlen)->Pack($bitmap->GetHexStr());# BITMAP
+
+			foreach my $key (@$fieldList) {
+				next if ($key == 64 or $key == 128 );
+				print "key: $key\n";
+				die "Mandatory field $key must be present in message" if( $$fieldType{$key} eq "M" and ! exists($$dataHash{$key}) );
+				$p1 .= $f->Set($iso->FieldFormat($key))->Pack($$dataHash{$key}) if ( exists($$dataHash{$key}) );
+			}
+			print "ISO Message without MAC: ", $p1->Data(),"\n";
+		}
+		{
+			my $data = $p1->Data();
+			my $mac=`./crypt.pl "MAC" $macKey $data 16`;				# assume the MAC Key is = 0123456789ABCDEF
+			chomp($mac);
+
+			# ISO8583 messaging has no routing information, so is sometimes used with a TPDU header. 
+			$p2 .= $f->Set('BIN', 'BIN', 'FIX', 40)->Pack($$dataHash{"TPDU"}) if ( exists($$dataHash{"TPDU"}) );		# TPDU	uncomment this line if your implimentation need TPDU header
+																				
+			$p2 .= $p1;
+			$p2 .= $f->Set('BIN', 'BIN', 'FIX', 64)->Pack($mac);				# 64 or 128 Message Authentication Code (MAC)
+
+			print "ISO Message: ", $p2->Data(), "\n";
+		}
+	}; if($@){
+		print $@,"\n";
+		exit;
+	}
+}
+
+{
+	local $@;
+	eval {
+		my ($out,$len,$str);
+		my $bitmap = new Bitmap($bitlen);
+		$str = $p2->Data();
+
+		($out,$len,$str) = $f->Set('BIN', 'BIN', 'FIX', 40)->UnPack($str) if ( exists($$dataHash{"TPDU"}) );		# TPDU	uncomment this line if your implimentation need TPDU header
+		($out,$len,$str) = $f->Set('BCD', 'BCD', 'FIX', 4)->UnPack($str);		# MTI
+		($out,$len,$str) = $f->Set('BIN', 'BIN', 'FIX', $bitlen)->UnPack($str);		# bitmap
+
+		$bitmap->SetHexStr($out);
+		my $fieldList = $bitmap->GetBits();
+		print "bitmap fields: ",join(' ',@$fieldList),"\n";
+
+		foreach my $key (@$fieldList) {
+			($out,$len,$str) = $f->Set($iso->FieldFormat($key))->UnPack($str);
+		}
+
+		print $str,"\n";
+	}; if($@){
+		print $@,"\n";
+		exit;
+	}	
+}
+
+```
+input data file 0100.txt
+```text
+# ISO8583 messaging has no routing information, so is sometimes used with a TPDU header. 
+# TPDU:A0B0D0E0F0
+
+# Message Type Identifier
+MTI:0100
+
+#2	Primary account number (PAN)
+2:1234567812345678
+
+ # 3 Processing Code
+3:003000
+  
+# 4 Transaction Amount
+4: 100
+
+# 7 Transmission Date & Time
+7 : 1225084821
+
+# 11 Systems Trace Audit Number (STAN)
+ 11: 5860
+
+# 12	Local transaction time (hhmmss)
+12:084821
+
+# 13	Local transaction date (MMDD)
+13:1225
+
+# 14 Expiration Date
+ 14 : 2108
+
+# 18	Merchant type, or merchant category code
+18:0002
+
+# 22	Point of service entry mode
+22:02
+
+# 25	Point of service condition code
+25:01
+
+# 28	Amount, transaction fee
+28:0
+
+# 32	Acquiring institution identification code
+32:708400001
+
+# 37	Retrieval reference number
+37: 225
+
+# 41	Card acceptor terminal identification
+41:12345678
+
+# 42 Card Acceptor Identification Code
+42: 1234567890
+
+# 43	Card acceptor name/location (1–23 street address, –36 city, –38 state, 39–40 country)
+43: Raha Rajabi, Azadi, Tehran, Tehran, Iran
+
+# 49	Currency code, transaction
+49:463
+
+# 128	Message authentication code
+128: 0123456789ABCDEF
+
+```
+```bash
+$./clientv1987.pl < 0100.txt 
+bitmap fields: 2 3 4 7 11 12 13 14 18 22 25 28 32 37 41 42 43 49 128
+bitmap: 723C449108E080000000000000000001
+DataPackager::LV::Pack in:0100 
+DataPackager::LV::Pack len:4 out:0100 
+DataPackager::LV::Pack in:723C449108E080000000000000000001 
+DataPackager::LV::Pack len:32 out:723C449108E080000000000000000001 
+key: 2
+DataPackager::LV::Pack in:1234567812345678 
+DataPackager::LV::PackLen len:16 
+DataPackager::LV::PackLen out:16 
+DataPackager::LV::Pack len:18 out:161234567812345678 
+key: 3
+DataPackager::LV::Pack in:003000 
+DataPackager::LV::Pack len:6 out:003000 
+key: 4
+DataPackager::LV::Pack in:100 
+DataPackager::LV::Pack len:12 out:000000000100 
+key: 7
+DataPackager::LV::Pack in:1225084821 
+DataPackager::LV::Pack len:10 out:1225084821 
+key: 11
+DataPackager::LV::Pack in:5860 
+DataPackager::LV::Pack len:6 out:005860 
+key: 12
+DataPackager::LV::Pack in:084821 
+DataPackager::LV::Pack len:6 out:084821 
+key: 13
+DataPackager::LV::Pack in:1225 
+DataPackager::LV::Pack len:4 out:1225 
+key: 14
+DataPackager::LV::Pack in:2108 
+DataPackager::LV::Pack len:4 out:2108 
+key: 18
+DataPackager::LV::Pack in:0002 
+DataPackager::LV::Pack len:4 out:0002 
+key: 22
+DataPackager::LV::Pack in:02 
+DataPackager::LV::Pack len:4 out:0002 
+key: 23
+key: 25
+DataPackager::LV::Pack in:01 
+DataPackager::LV::Pack len:2 out:01 
+key: 26
+key: 28
+DataPackager::LV::Pack in:0 
+DataPackager::LV::Pack len:8 out:C0000000 
+key: 32
+DataPackager::LV::Pack in:708400001 
+DataPackager::LV::PackLen len:9 
+DataPackager::LV::PackLen out:09 
+DataPackager::LV::Pack len:12 out:090708400001 
+key: 35
+key: 37
+DataPackager::LV::Pack in:225 
+DataPackager::LV::Pack len:24 out:323235202020202020202020 
+key: 40
+key: 41
+DataPackager::LV::Pack in:12345678 
+DataPackager::LV::Pack len:16 out:3132333435363738 
+key: 42
+DataPackager::LV::Pack in:1234567890 
+DataPackager::LV::Pack len:30 out:313233343536373839302020202020 
+key: 43
+DataPackager::LV::Pack in:Raha Rajabi, Azadi, Tehran, Tehran, Iran 
+DataPackager::LV::Pack len:80 out:526168612052616a6162692c20417a6164692c2054656872616e2c2054656872616e2c204972616e 
+key: 49
+DataPackager::LV::Pack in:463 
+DataPackager::LV::Pack len:4 out:0463 
+key: 52
+key: 53
+key: 54
+key: 55
+key: 56
+key: 59
+key: 60
+key: 62
+key: 123
+key: 124
+ISO Message without MAC: 0100723C449108E0800000000000000000011612345678123456780030000000000001001225084821005860084821122521080002000201C00000000907084000013232352020202020202020203132333435363738313233343536373839302020202020526168612052616a6162692c20417a6164692c2054656872616e2c2054656872616e2c204972616e0463
+DataPackager::LV::Pack in:f4211d2edd384071 
+DataPackager::LV::Pack len:16 out:f4211d2edd384071 
+ISO Message: 0100723C449108E0800000000000000000011612345678123456780030000000000001001225084821005860084821122521080002000201C00000000907084000013232352020202020202020203132333435363738313233343536373839302020202020526168612052616a6162692c20417a6164692c2054656872616e2c2054656872616e2c204972616e0463f4211d2edd384071
+DataPackager::LV::UnPack in:0100723C449108E0800000000000000000011612345678123456780030000000000001001225084821005860084821122521080002000201C00000000907084000013232352020202020202020203132333435363738313233343536373839302020202020526168612052616a6162692c20417a6164692c2054656872616e2c2054656872616e2c204972616e0463f4211d2edd384071 
+DataPackager::LV::UnPack len: 4 len(out):3 out:100
+DataPackager::LV::UnPack in:723C449108E0800000000000000000011612345678123456780030000000000001001225084821005860084821122521080002000201C00000000907084000013232352020202020202020203132333435363738313233343536373839302020202020526168612052616a6162692c20417a6164692c2054656872616e2c2054656872616e2c204972616e0463f4211d2edd384071 
+DataPackager::LV::UnPack len: 32 len(out):32 out:723C449108E080000000000000000001
+bitmap fields: 2 3 4 7 11 12 13 14 18 22 25 28 32 37 41 42 43 49 128
+DataPackager::LV::UnPack in:1612345678123456780030000000000001001225084821005860084821122521080002000201C00000000907084000013232352020202020202020203132333435363738313233343536373839302020202020526168612052616a6162692c20417a6164692c2054656872616e2c2054656872616e2c204972616e0463f4211d2edd384071 
+DataPackager::LV::PackLen out:2 
+DataPackager::LV::UnPack len: 18 len(out):16 out:1234567812345678
+DataPackager::LV::UnPack in:0030000000000001001225084821005860084821122521080002000201C00000000907084000013232352020202020202020203132333435363738313233343536373839302020202020526168612052616a6162692c20417a6164692c2054656872616e2c2054656872616e2c204972616e0463f4211d2edd384071 
+DataPackager::LV::UnPack len: 6 len(out):4 out:3000
+DataPackager::LV::UnPack in:0000000001001225084821005860084821122521080002000201C00000000907084000013232352020202020202020203132333435363738313233343536373839302020202020526168612052616a6162692c20417a6164692c2054656872616e2c2054656872616e2c204972616e0463f4211d2edd384071 
+DataPackager::LV::UnPack len: 12 len(out):3 out:100
+DataPackager::LV::UnPack in:1225084821005860084821122521080002000201C00000000907084000013232352020202020202020203132333435363738313233343536373839302020202020526168612052616a6162692c20417a6164692c2054656872616e2c2054656872616e2c204972616e0463f4211d2edd384071 
+DataPackager::LV::UnPack len: 10 len(out):10 out:1225084821
+DataPackager::LV::UnPack in:005860084821122521080002000201C00000000907084000013232352020202020202020203132333435363738313233343536373839302020202020526168612052616a6162692c20417a6164692c2054656872616e2c2054656872616e2c204972616e0463f4211d2edd384071 
+DataPackager::LV::UnPack len: 6 len(out):4 out:5860
+DataPackager::LV::UnPack in:084821122521080002000201C00000000907084000013232352020202020202020203132333435363738313233343536373839302020202020526168612052616a6162692c20417a6164692c2054656872616e2c2054656872616e2c204972616e0463f4211d2edd384071 
+DataPackager::LV::UnPack len: 6 len(out):5 out:84821
+DataPackager::LV::UnPack in:122521080002000201C00000000907084000013232352020202020202020203132333435363738313233343536373839302020202020526168612052616a6162692c20417a6164692c2054656872616e2c2054656872616e2c204972616e0463f4211d2edd384071 
+DataPackager::LV::UnPack len: 4 len(out):4 out:1225
+DataPackager::LV::UnPack in:21080002000201C00000000907084000013232352020202020202020203132333435363738313233343536373839302020202020526168612052616a6162692c20417a6164692c2054656872616e2c2054656872616e2c204972616e0463f4211d2edd384071 
+DataPackager::LV::UnPack len: 4 len(out):4 out:2108
+DataPackager::LV::UnPack in:0002000201C00000000907084000013232352020202020202020203132333435363738313233343536373839302020202020526168612052616a6162692c20417a6164692c2054656872616e2c2054656872616e2c204972616e0463f4211d2edd384071 
+DataPackager::LV::UnPack len: 4 len(out):1 out:2
+DataPackager::LV::UnPack in:000201C00000000907084000013232352020202020202020203132333435363738313233343536373839302020202020526168612052616a6162692c20417a6164692c2054656872616e2c2054656872616e2c204972616e0463f4211d2edd384071 
+DataPackager::LV::UnPack len: 4 len(out):1 out:2
+DataPackager::LV::UnPack in:01C00000000907084000013232352020202020202020203132333435363738313233343536373839302020202020526168612052616a6162692c20417a6164692c2054656872616e2c2054656872616e2c204972616e0463f4211d2edd384071 
+DataPackager::LV::UnPack len: 2 len(out):1 out:1
+DataPackager::LV::UnPack in:C00000000907084000013232352020202020202020203132333435363738313233343536373839302020202020526168612052616a6162692c20417a6164692c2054656872616e2c2054656872616e2c204972616e0463f4211d2edd384071 
+DataPackager::LV::UnPack len: 8 len(out):0 out:
+DataPackager::LV::UnPack in:0907084000013232352020202020202020203132333435363738313233343536373839302020202020526168612052616a6162692c20417a6164692c2054656872616e2c2054656872616e2c204972616e0463f4211d2edd384071 
+DataPackager::LV::PackLen out:2 
+DataPackager::LV::UnPack len: 12 len(out):9 out:708400001
+DataPackager::LV::UnPack in:3232352020202020202020203132333435363738313233343536373839302020202020526168612052616a6162692c20417a6164692c2054656872616e2c2054656872616e2c204972616e0463f4211d2edd384071 
+DataPackager::LV::UnPack len: 24 len(out):3 out:225
+DataPackager::LV::UnPack in:3132333435363738313233343536373839302020202020526168612052616a6162692c20417a6164692c2054656872616e2c2054656872616e2c204972616e0463f4211d2edd384071 
+DataPackager::LV::UnPack len: 16 len(out):8 out:12345678
+DataPackager::LV::UnPack in:313233343536373839302020202020526168612052616a6162692c20417a6164692c2054656872616e2c2054656872616e2c204972616e0463f4211d2edd384071 
+DataPackager::LV::UnPack len: 30 len(out):10 out:1234567890
+DataPackager::LV::UnPack in:526168612052616a6162692c20417a6164692c2054656872616e2c2054656872616e2c204972616e0463f4211d2edd384071 
+DataPackager::LV::UnPack len: 80 len(out):40 out:Raha Rajabi, Azadi, Tehran, Tehran, Iran
+DataPackager::LV::UnPack in:0463f4211d2edd384071 
+DataPackager::LV::UnPack len: 4 len(out):3 out:463
+DataPackager::LV::UnPack in:f4211d2edd384071 
+DataPackager::LV::UnPack len: 16 len(out):16 out:f4211d2edd384071
+
+```
+
 ## Refferences
 
