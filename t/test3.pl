@@ -6,7 +6,7 @@ use lib "../lib";
 use Data::Dumper;
 
 use DataPackager::LV;
-use DataFormat::ISO8583;
+use DataFormat::ISO8583v03;
 use Tools;
 use Packet;
 #/*

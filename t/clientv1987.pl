@@ -63,7 +63,7 @@ my $macKey;
 			print "bitmap fields: ",join(' ',@{$bitmap->GetBits()}),"\n";
 			print "bitmap: ",$bitmap->GetHexStr(),"\n";
 
-			my $fieldList = [ sort { $a <=> $b } @{$iso->GetBits($mti)} ];
+			my $fieldList = [ sort { $a <=> $b } keys %{$iso->GetFields($mti)} ];
 			my $fieldType = $iso->GetFields($mti);
 
 			$p1 .= $f->Set('BCD', 'BCD', 'FIX', 4)->Pack($mti);				# MTI code
@@ -73,7 +73,7 @@ my $macKey;
 				next if ($key == 64 or $key == 128 );
 				print "key: $key\n";
 				die "Mandatory field $key must be present in message" if( $$fieldType{$key} eq "M" and ! exists($$dataHash{$key}) );
-				$p1 .= $f->Set($iso->FieldFormat($key))->Pack($$dataHash{$key}) if ( exists($$dataHash{$key}) );
+				$p1 .= $f->Set($iso->GetFieldFormat($key))->Pack($$dataHash{$key}) if ( exists($$dataHash{$key}) );
 			}
 			print "ISO Message without MAC: ", $p1->Data(),"\n";
 		}
@@ -112,7 +112,7 @@ my $macKey;
 		print "bitmap fields: ",join(' ',@$fieldList),"\n";
 
 		foreach my $key (@$fieldList) {
-			($out,$len,$str) = $f->Set($iso->FieldFormat($key))->UnPack($str);
+			($out,$len,$str) = $f->Set($iso->GetFieldFormat($key))->UnPack($str);
 		}
 
 		print $str,"\n";

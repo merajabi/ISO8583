@@ -6,7 +6,7 @@ use lib "../lib";
 use Data::Dumper;
 
 use DataPackager::LV;
-use DataFormat::ISO8583;
+use DataFormat::ISO8583v03;
 use Tools;
 use Packet;
 #/*
@@ -20,7 +20,7 @@ use Packet;
 {
 	local $@;
 	eval {
-		my $f = new DataPackager::LV({'format'=>'BIN','type'=>'FIX','length'=>3});
+		my $f = new DataPackager::LV({'lenFormat'=>'BIN','format'=>'BIN','type'=>'FIX','length'=>24});
 		my $packed;
 		$packed = $f->Pack("CBA987");
 		print $packed,"\n";
@@ -37,7 +37,7 @@ use Packet;
 		my $f = new DataPackager::LV();
 		my $p = new Packet;
 		#$p->AddData($f->Set('BINARY','LVAR',2)->Pack("CBA987"));
-		$p .= $f->Set('BIN','VAR',2)->Pack("CBA987");
+		$p .= $f->Set('BIN','BIN','VAR',24)->Pack("CBA987");
 		print $p->Data(),"\n";
 	}; if($@){
 		print $@,"\n";
