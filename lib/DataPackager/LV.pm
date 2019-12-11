@@ -31,19 +31,19 @@ sub Set {
 	if($lenFormat eq DataPackager::DataFormat->BIN || $lenFormat eq DataPackager::DataFormat->BCD || $lenFormat eq DataPackager::DataFormat->ASC ){
 		$self->{'lenFormat'} = $lenFormat;
 	}else{
-		die "DataPackager::LV::Set, Input format: ".$lenFormat." not recognized, valid values are (BINARY,BCD,ASCII)";
+		die "DataPackager::LV::Set, Input format: ".$lenFormat." not recognized, valid values are (BIN,BCD,ASC)";
 	}
 
 	if($format eq DataPackager::DataFormat->BIN || $format eq DataPackager::DataFormat->BCD || $format eq DataPackager::DataFormat->XBCD || $format eq DataPackager::DataFormat->ASC ){
 		$self->{'format'} = $format;
 	}else{
-		die "DataPackager::LV::Set, Input format: ".$format." not recognized, valid values are (BINARY,BCD,ASCII)";
+		die "DataPackager::LV::Set, Input format: ".$format." not recognized, valid values are (BIN,BCD,ASC)";
 	}
 
 	if( $type eq DataPackager::PackagingType->FIX || $type eq DataPackager::PackagingType->VAR ){
 		$self->{'type'} = $type;
 	}else{
-		die "DataPackager::LV::Set, Input type: ".$type." not recognized, valid values are (FIXED,LVAR)";
+		die "DataPackager::LV::Set, Input type: ".$type." not recognized, valid values are (FIX,VAR)";
 	}
 
 	if($length>=0){
@@ -62,7 +62,7 @@ sub Set {
 sub Pack {
 	my ($self,$in)=@_;
 	my $out;
-	print "DataPackager::LV::Pack in:$in \n";
+	print "# ","DataPackager::LV::Pack in:$in \n";
 
 	if($self->{'type'} eq DataPackager::PackagingType->FIX){
 		if($self->{'format'} eq DataPackager::DataFormat->BIN){
@@ -97,7 +97,7 @@ sub Pack {
 				die "DataPackager::LV::Pack, FIXED sized ASCII input len must be equal to Filter len";
 			}
 		}else{
-			die "DataPackager::LV::Pack, Input format: ".$self->{'format'}." not recognized, valid values are (BINARY,BCD,ASCII)";
+			die "DataPackager::LV::Pack, Input format: ".$self->{'format'}." not recognized, valid values are (BIN,BCD,ASC)";
 		}
 	}
 	elsif ($self->{'type'} eq DataPackager::PackagingType->VAR){
@@ -139,19 +139,19 @@ sub Pack {
 				die "DataPackager::LV::Pack, LVAR sized ASCII input len must be less than or equal to Filter len";
 			}
 		}else{
-			die "DataPackager::LV::Pack, Input format: ".$self->{'format'}." not recognized, valid values are (BINARY,BCD,ASCII)";
+			die "DataPackager::LV::Pack, Input format: ".$self->{'format'}." not recognized, valid values are (BIN,BCD,ASC)";
 		}
 	}else{
-		die "DataPackager::LV::Pack, Input type: ".$self->{'type'}." not recognized, valid values are (FIXED,LVAR)";
+		die "DataPackager::LV::Pack, Input type: ".$self->{'type'}." not recognized, valid values are (FIX,VAR)";
 	}
-	print "DataPackager::LV::Pack len:".length($out)." out:$out \n";
+	print "# ","DataPackager::LV::Pack len:".length($out)." out:$out \n";
 
 	return $out;
 }
 
 sub PackLen {
 	my ($self,$len)=@_;
-	print "DataPackager::LV::PackLen len:$len \n";
+	print "# ","DataPackager::LV::PackLen len:$len \n";
 	my $out;
 
 	if($self->{'lenFormat'} eq DataPackager::DataFormat->BIN){
@@ -167,13 +167,13 @@ sub PackLen {
 		die "DataPackager::LV::PackLen, Input format: ".$self->{'lenFormat'}." not recognized, valid values are (BINARY,BCD,ASCII)";
 	}
 
-	print "DataPackager::LV::PackLen out:$out \n";
+	print "# ","DataPackager::LV::PackLen out:$out \n";
 	return $out;
 }
 
 sub UnPackLen {
 	my ($self,$in)=@_;
-#	print "DataPackager::LV::PackLen len:$len \n";
+#	print "# ","DataPackager::LV::PackLen len:$len \n";
 	my $len;
 	my $out;
 
@@ -189,10 +189,10 @@ sub UnPackLen {
 		$out = HexToAscii( substr( $in, 0, $len ) );
 	}
 	else{
-		die "DataPackager::LV::PackLen, Input format: ".$self->{'lenFormat'}." not recognized, valid values are (BINARY,BCD,ASCII)";
+		die "DataPackager::LV::UnPackLen, Input format: ".$self->{'lenFormat'}." not recognized, valid values are (BINARY,BCD,ASCII)";
 	}
 
-	print "DataPackager::LV::PackLen out:$len \n";
+	print "# ","DataPackager::LV::UnPackLen out:$len \n";
 	return ($out,$len,substr($in,$len));
 }
 
@@ -207,7 +207,7 @@ sub UnPack{
 	my ($self,$in)=@_;
 	my $out;
 	my $len=0;
-	print "DataPackager::LV::UnPack in:$in \n";
+	print "# ","DataPackager::LV::UnPack in:$in \n";
 
 	if( $self->{'type'} eq DataPackager::PackagingType->FIX){
 		if( $self->{'format'} eq DataPackager::DataFormat->BIN){
@@ -217,9 +217,9 @@ sub UnPack{
 		elsif( $self->{'format'} eq DataPackager::DataFormat->BCD) {
 			$out = substr($in,0,$self->{'length'}+$self->{'length'}%2);
 			if($self->{'PadAlignBCD'} eq "LEFT"){
-				$out =~ s/^$self->{'PadCharBCD'}*//;
+				#$out =~ s/^$self->{'PadCharBCD'}*//;
 			}else{
-				$out =~ s/$self->{'PadCharBCD'}*$//;
+				#$out =~ s/$self->{'PadCharBCD'}*$//;
 			}
 			$len=$self->{'length'}+$self->{'length'}%2;
 		}
@@ -248,14 +248,17 @@ sub UnPack{
 		my ($lenData,$lenLen) = $self->UnPackLen($in);
 
 		if( $self->{'format'} eq DataPackager::DataFormat->BIN){
+			$lenData*=2;
+			$out = substr($in,$lenLen,$lenData);
+			$len=$lenData+$lenLen;
 		}
 		elsif( $self->{'format'} eq DataPackager::DataFormat->BCD) {
 			$lenData+=$lenData%2;
 			$out = substr($in,$lenLen,$lenData);
 			if($self->{'PadAlignBCD'} eq "LEFT"){
-				$out =~ s/^$self->{'PadCharBCD'}*//;
+				#$out =~ s/^$self->{'PadCharBCD'}*//;
 			}else{
-				$out =~ s/$self->{'PadCharBCD'}*$//;
+				#$out =~ s/$self->{'PadCharBCD'}*$//;
 			}
 
 			$len = $lenLen + $lenData;
@@ -270,7 +273,7 @@ sub UnPack{
 		die "DataPackager::LV::UnPack, Input type: ".$self->{'type'}." not recognized, valid values are (FIXED,LVAR)";
 	}
 
-	print "DataPackager::LV::UnPack len: $len len(out):".length($out)." out:$out\n";
+	print "# ","DataPackager::LV::UnPack len: $len len(out):".length($out)." out:$out\n";
 
 	return ($out,$len,substr($in,$len));
 }

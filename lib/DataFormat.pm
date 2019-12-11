@@ -3,6 +3,8 @@ package DataFormat;
 use strict;
 use warnings;
 
+use Data::Dumper;
+
 sub new {
 	my ($class, $args) = @_;
     die __PACKAGE __ . " is an abstract class" if $class eq __PACKAGE__;
@@ -23,14 +25,23 @@ sub InitFormats {
     die $self . " is an abstract class";
 }
 
-sub FieldFormat {
-	my ($self) = @_;
-    die $self . " is an abstract class";
+sub GetFieldFormat {
+	my ($self,$fieldNumber) = @_;
+	if (exists $self->{'format'}{$fieldNumber} ) {
+		return @{$self->{'format'}{$fieldNumber}};
+	}else{
+		die __PACKAGE__." line: ".__LINE__.", No such field: $fieldNumber\n";
+	}
 }
-
-sub Fields {
-	my ($self) = @_;
-    die $self . " is an abstract class";
+sub GetFields {
+	my ($self,$mit) = @_;
+	if (exists $self->{'fields'}{$mit} ) {
+		return $self->{'fields'}{$mit};
+	}elsif(exists $self->{'fields'}{substr($mit,0,4)}){
+		return $self->{'fields'}{substr($mit,0,4)};
+	}else{
+		die __PACKAGE__." line: ".__LINE__.", No such MIT & Process code: $mit\n";
+	}
 }
 
 1;

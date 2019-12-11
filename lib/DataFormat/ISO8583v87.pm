@@ -166,32 +166,6 @@ sub InitFormats {
 	$self->{'format'}{128}	= ['BIN',	'BIN',	'FIX',	64,	"128	Message authentication code"];
 }
 
-sub FieldFormat {
-	my ($self,$fieldNumber) = @_;
-	if (exists $self->{'format'}{$fieldNumber} ) {
-		return @{$self->{'format'}{$fieldNumber}};
-	}else{
-		die "ISO8583::FieldFormat, No such field: $fieldNumber\n";
-	}
-}
-sub GetFields {
-	my ($self,$mit) = @_;
-	if (exists $self->{'fields'}{$mit} ) {
-		return $self->{'fields'}{$mit};
-	}else{
-		die "ISO8583::Fields, No such MIT & Process code: $mit\n";
-	}
-}
-sub GetBits {
-	my ($self,$mit) = @_;
-
-	if (exists $self->{'fields'}{$mit} ) {
-		return [ keys %{$self->{'fields'}{$mit}} ];
-	}else{
-		die "ISO8583::GetBits, No such MIT & Process code: $mit\n";
-	}
-}
-
 1;
 
 __END__
