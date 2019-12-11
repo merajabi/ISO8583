@@ -17,7 +17,9 @@ sub new {
 
 sub InitFields {
 	my ($self) = @_;
-	$self->{'fields'}{0100} = [ "C", "M", "M", "C", "M", "M", "O", "O", "O", "O", "O", "O", "O", "O", "O", "O", "O", "O", "O", "O", "NP", "NP", "NP", "O", "O", "O", "M", "O", "O", "O", "O", "O", "O", "O", "O", "C", "M", "O", "O", "O", "O", "O", "C", "C", "O", "O", "O", "O", "O", "O", "O", "O", "O", "O", "O", "O", "O", "M", "M", "O", "O", "O", "O", "O", "M", "C", "O", "O", "O", "O", "O", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "C", "NP", "NP", "NP", "NP", "O", "C", "C", "C", "M", "M", "M", "NP", "M", "NP", "NP", "NP", "NP", "NP", "NP", "NP", "NP", "NP", "NP", "NP", "NP", "O", "M", "M", "O", "O", "C", "C", "O", "NP", "NP", "NP", "NP", "O", "C", "O", "NP", "NP", "NP", "NP", "NP", "O", "O", "O", "O", "O", "O", "O", "NP", "NP", "NP", "NP", "NP", "NP", "NP", "NP", "NP", "NP", "NP", "NP", "NP", "NP", "O", "C", "O", "C", "C", "C", "C", "C", "C", "C", "C", "O", "NP", "NP", "NP", "C", "M", "C", "C", "M", "C", "C", "C", "O", "O", "C", "O", "O", "NP", "O", "O", "O", "O", "NP", "NP", "NP", "NP", "C", "C", "C" ];
+	$self->{'fields'}{'2100'} = {2 => "M", 3 => "M", 4 => "M", 7 => "M", 11 => "M", 12 => "M", 13 => "M", 14 => "M", 18 => "M", 22 => "M", 23 => "C", 25 => "M", 26 => "C", 28 => "M", 32 => "M", 35 => "C", 37 => "M", 40 => "O", 41 => "M", 42 => "M", 43 => "M", 49 => "M", 52 => "C", 53 => "C", 54 => "C", 55 => "C", 56 => "O", 59 => "O", 60 => "C", 62 => "C", 123 => "C", 124 => "C", 128 => "M"};
+
+	$self->{'fields'}{'2110'} = {2 => "M", 3 => "M", 4 => "M", 7 => "C", 11 => "C", 12 => "M", 13 => "C", 14 => "C", 15 => "C", 18 => "M", 22 => "M", 23 => "M", 25 => "M", 28 => "C", 30 => "C", 32 => "M", 33 => "C", 35 => "C", 37 => "M", 38 => "C", 39 => "M", 40 => "C", 41 => "O", 42 => "C", 43 => "C", 49 => "M", 54 => "C", 55 => "C", 59 => "C", 60 => "C", 102 => "O", 103 => "O", 123 => "M", 124 => "C", 128 => "M"}
 
 }
 
@@ -32,26 +34,13 @@ sub InitFields {
 
 sub InitFormats {
 	my ($self) = @_;
+
+	$self->{'format'}{'TPDU'}	= ['BIN',	'BIN',	'FIX',	40,	"TPDU"];
+	$self->{'format'}{'MTI'}	= ['BCD',	'BCD',	'FIX',	4,	"Message Type Identifier"];
+	$self->{'format'}{'BITMAP'}	= ['BIN',	'BIN',	'FIX',	128,"BITMAP"];
+
 #								LEN		DATA	TYPE	LEN		Comment
-#	$self->{'format'}{1}	= ['BIN',	'BIN',	'FIX',	64,	"1	Second Bitmap"]; # will be calculated automatically
-}
-
-sub FieldFormat {
-	my ($self,$fieldNumber) = @_;
-	if (exists $self->{'format'}{$fieldNumber} ) {
-		return @{$self->{'format'}{$fieldNumber}};
-	}else{
-		die "ISO8583::FieldFormat, No such field: ".$fieldNumber;
-	}
-}
-
-sub Fields {
-	my ($self,$mit,$process) = @_;
-	if (exists $self->{'fields'}{$mit.$process} ) {
-		return $self->{'fields'}{$mit.$process};
-	}else{
-		die "ISO8583::Fields, No such MIT & Process code: $mit $process";
-	}
+	$self->{'format'}{2}	= ['BCD',	'BCD',	'VAR',	19,	"2	Primary Account Number"];
 }
 
 1;

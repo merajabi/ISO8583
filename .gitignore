@@ -36,3 +36,6 @@ inc/
 
 # Documents
 doc/
+lib/DataFormat/ISO8583vbpmATM.pm
+lib/DataFormat/ISO8583vbpmPOS.pm
+

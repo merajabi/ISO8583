@@ -33,8 +33,12 @@ sub InitFields {
 
 sub InitFormats {
 	my ($self) = @_;
+
+	$self->{'format'}{'TPDU'}	= ['BIN',	'BIN',	'FIX',	40,	"TPDU"];
+	$self->{'format'}{'MTI'}	= ['BCD',	'BCD',	'FIX',	4,	"Message Type Identifier"];
+	$self->{'format'}{'BITMAP'}	= ['BIN',	'BIN',	'FIX',	128,"BITMAP"];
+
 #								LEN		DATA	TYPE	LEN		Comment
-	$self->{'format'}{1}	= ['BIN',	'BIN',	'FIX',	64,	"1	Second Bitmap"]; # will be calculated automatically
 	$self->{'format'}{2}	= ['BCD',	'BCD',	'VAR',	19,	"2	Primary account number (PAN)"];
 	$self->{'format'}{3}	= ['BCD',	'BCD',	'FIX',	6,	"3	Processing code"];
 	$self->{'format'}{4}	= ['BCD',	'BCD',	'FIX',	12,	"4	Amount, transaction"];

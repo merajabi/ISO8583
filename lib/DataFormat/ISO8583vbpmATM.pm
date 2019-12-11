@@ -43,7 +43,7 @@ sub InitFields {
 
 sub InitFormats {
 	my ($self) = @_;
-
+#									LEN		DATA	TYPE	LEN		Comment
 	$self->{'format'}{'TPDU'}	= ['BIN',	'BIN',	'FIX',	40,	"TPDU"];
 	$self->{'format'}{'MTI'}	= ['ASC',	'ASC',	'FIX',	32,	"Message Type Identifier"];
 	$self->{'format'}{'BITMAP'}	= ['ASC',	'ASC',	'FIX',	32,	"BITMAP"];
