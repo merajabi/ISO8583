@@ -181,7 +181,7 @@ sub UnPackLen {
 		#$out = HexString(substr($in,$self->{'length'}/8));
 	}
 	elsif($self->{'lenFormat'} eq DataPackager::DataFormat->BCD) {
-		$len = length(toString($self->{'length'}));
+		$len = length(toString($self->{'length'})) + length( toString($self->{'length'}) )%2;
 		$out = substr( $in, 0, $len );
 	}
 	elsif($self->{'lenFormat'} eq DataPackager::DataFormat->ASC) {
