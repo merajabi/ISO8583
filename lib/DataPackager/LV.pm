@@ -158,7 +158,7 @@ sub PackLen {
 		$out = HexString(PaddedFixedLenString($len,$self->{'length'}/8));
 	}
 	elsif($self->{'lenFormat'} eq DataPackager::DataFormat->BCD) {
-		$out = PaddedFixedLenString( $len,length(toString($self->{'length'})) );
+		$out = PaddedFixedLenString( $len,length(toString($self->{'length'}) + length(toString($self->{'length'})%2 ) );
 	}
 	elsif($self->{'lenFormat'} eq DataPackager::DataFormat->ASC) {
 		$out = HexString(PaddedFixedLenString( $len,length(toString($self->{'length'})) ));
