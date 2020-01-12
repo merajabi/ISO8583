@@ -9,8 +9,7 @@ use warnings;
 sub new {
 	my ($class, $bits) = @_;
 	my $self = {};
-	$self->{'bits'} = int($bits/8);
-	for(my $i=0;$i< $self->{'bits'};$i++){
+	for(my $i=0; $i< int($bits/8); $i++){
 		$self->{'bitmap'}[$i] = 0;
 	}
     bless $self, $class;
@@ -31,7 +30,7 @@ sub SetBits {
 sub GetBits {
 	my ($self) = @_;
 	my $fields = [];
-	for(my $i=0; $i < $self->{'bits'}; $i++){
+	for(my $i=0; $i < @{$self->{'bitmap'}}; $i++){
 		my $x = $self->{'bitmap'}[$i];
 		for(my $j=0; $j < 8; $j++){
 			if($x & 1){
@@ -48,7 +47,7 @@ sub GetBits {
 sub GetHexStr {
 	my ($self) = @_;
 	my $str;
-	for(my $i=0;$i< $self->{'bits'};$i++){
+	for(my $i=0;$i< @{$self->{'bitmap'}};$i++){
 		$str .= sprintf ("%02X",$self->{'bitmap'}[$i]);
 	}
 	return $str;
